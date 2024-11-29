@@ -38,6 +38,7 @@ class Database:
             SELECT TOP 5000
                 (tabelle1.preis / tabelle2.gewicht) AS kg_preis,
                 tabelle1.artnr
+                tabelle2.klass
             FROM datenbank.tabelle1 tabelle1
             JOIN datenbank.tabelle2 tabelle2 ON tabelle1.artnr = tabelle2.artnr
             JOIN datenbank.tabelle3 tabelle3 ON tabelle1.besnr = tabelle3.besnr
@@ -56,25 +57,27 @@ class Database:
             total_kg_preis = 0
             i = 0
             artikelnummern = []
+            abmessung = []
             for row in cursor:
-                kg_preis, artnr = row
+                kg_preis, artnr, klass = row
                 if kg_preis is not None:
                     total_kg_preis += kg_preis
                     artikelnummern.append(artnr)
+                    abmessung.append(klass)
                     i += 1
 
             if i > 0:
                 durchschnitt_kg_preis = total_kg_preis / i
-                return durchschnitt_kg_preis, i, artikelnummern
+                return durchschnitt_kg_preis, i, artikelnummern, abmessung
             else:
-                return None, 0, []
+                return None, 0, [], []
 
         except pyodbc.Error as db_err:
             print(f"Datenbankfehler: {db_err}")
-            return None, 0, []
+            return None, 0, [], []
         except Exception as e:
             print(f"Fehler: {e}")
-            return None, 0, []
+            return None, 0, [], []
         finally:
             if conn:
                 conn.close()
