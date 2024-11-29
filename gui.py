@@ -106,13 +106,13 @@ class GUI:
         lieferant = self.variables['lieferant'].get().strip()
         durchmesser = self.variables['durchmesser'].get().strip()
 
-        durchschnitt, anzahl_datensaetze, artikelnummern = Database.berechne_kg_preis(werkstoff, startdatum, enddatum, durchmesser, lieferant)
+        durchschnitt, anzahl_datensaetze, artikelnummern, abmessung = Database.berechne_kg_preis(werkstoff, startdatum, enddatum, durchmesser, lieferant)
 
         if durchschnitt is not None:
             self.variables['ergebnis'].set(f"Durchschnittlicher kg-Preis: {durchschnitt:.2f} €/kg")
             self.variables['rueckgabe_datensaetze'].set(f"Anzahl der gefundenen Datensätze: {anzahl_datensaetze}")
             self.stueckpreis_berechnen(werkstoff, durchschnitt)
-            self.show_artikelnummern(artikelnummern)
+            self.show_artikelnummern(artikelnummern, abmessung)
         else:
             self.variables['ergebnis'].set("Keine Daten gefunden oder Fehler bei der Berechnung.")
             self.variables['rueckgabe_datensaetze'].set("")
@@ -125,6 +125,7 @@ class GUI:
         except ValueError:
             self.variables['ergebnis'].set("Bitte ein gültiges Datum im Format YYYY-MM-DD eingeben.")
             self.variables['rueckgabe_datensaetze'].set("")
+            self.show_artikelnummern(None, None)
             return False
 
     def stueckpreis_berechnen(self, werkstoff: str, durchschnitt: float):
@@ -136,18 +137,28 @@ class GUI:
         except ValueError:
             self.variables['stueckpreis'].set("Keine Angaben für die Abmessungen angegeben.")
 
-    def show_artikelnummern(self, artikelnummern: list[str]):
+    def show_artikelnummern(self, artikelnummern: list[str], abmessung: list[str]):
         if artikelnummern:
             ttk.Label(self.root, background=self.styles['bg_color'], text="Gefundene Datensätze:", 
-                      font=self.styles['font_text'], foreground=self.styles['fg_color']).grid(row=12, column=0, columnspan=2, padx=10, pady=10)
-            
-            self.variables['artikelnummern'].set(artikelnummern[0])
+                    font=self.styles['font_text'], foreground=self.styles['fg_color']).grid(row=12, column=0, columnspan=2, padx=10, pady=10)
+
+            # Kombiniere Artikelnummer und Abmessung für die Anzeige
+            combined_values = [f"{artnr}{abm}" for artnr, abm in zip(artikelnummern, abmessung)]
+
+            # Erstelle und platziere die Combobox mit den kombinierten Werten
             artikelnummern_dropdown = ttk.Combobox(self.root, textvariable=self.variables['artikelnummern'], 
-                                                   values=artikelnummern, font=self.styles['font_text'])
+                                                    values=combined_values, font=self.styles['font_text'], width=25)
             artikelnummern_dropdown.grid(row=13, column=0, columnspan=2, padx=0, pady=5)
-            artikelnummern_dropdown.set(artikelnummern[0])
+
+            # Setze den ersten kombinierten Wert als Standardwert
+            artikelnummern_dropdown.set(combined_values[0])  # Setze den ersten kombinierten Wert (Artikelnummer, Abmessung)
         else:
-            self.variables['artikelnummern'].set("Keine Artikelnummern gefunden")
+            # Wenn keine Artikelnummern gefunden wurden, setze die 'artikelnummern' variable leer und leere die Combobox
+            self.variables['artikelnummern'].set("")  # Leere die Textvariable
+            artikelnummern_dropdown = ttk.Combobox(self.root, textvariable=self.variables['artikelnummern'], 
+                                                    values=[], font=self.styles['font_text'], width=25)  # Setze leere Werte
+            artikelnummern_dropdown.grid(row=13, column=0, columnspan=2, padx=0, pady=5)
+
 
     def run(self):
         self.root.mainloop()
