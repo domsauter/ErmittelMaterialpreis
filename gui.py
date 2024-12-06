@@ -16,7 +16,7 @@ class GUI:
         self.create_widgets()
 
     def setup_window(self):
-        self.root.title("Stahl kg-Preis Berechnung")
+        self.root.title("Stahl Preis Rechner")
         logo_path = os.path.join(os.path.dirname(__file__), 'logo.png')
         if os.path.exists(logo_path):
             ico = Image.open(logo_path)
@@ -105,8 +105,9 @@ class GUI:
         enddatum = self.variables['enddatum'].get().strip()
         lieferant = self.variables['lieferant'].get().strip()
         durchmesser = self.variables['durchmesser'].get().strip()
+        laenge = self.variables['laenge'].get().strip()
 
-        durchschnitt, anzahl_datensaetze, artikelnummern, abmessung = Database.berechne_kg_preis(werkstoff, startdatum, enddatum, durchmesser, lieferant)
+        durchschnitt, anzahl_datensaetze, artikelnummern, abmessung = Database.berechne_kg_preis(werkstoff, startdatum, enddatum, durchmesser, laenge, lieferant)
 
         if durchschnitt is not None:
             self.variables['ergebnis'].set(f"Durchschnittlicher kg-Preis: {durchschnitt:.2f} €/kg")
@@ -115,7 +116,8 @@ class GUI:
             self.show_artikelnummern(artikelnummern, abmessung)
         else:
             self.variables['ergebnis'].set("Keine Daten gefunden oder Fehler bei der Berechnung.")
-            self.variables['rueckgabe_datensaetze'].set("")
+            self.variables['rueckgabe_datensaetze'].set("Anzahl der gefundenen Datensätze: 0")
+            self.show_artikelnummern(artikelnummern, abmessung)
 
     def validate_dates(self) -> bool:
         try:
@@ -130,12 +132,21 @@ class GUI:
 
     def stueckpreis_berechnen(self, werkstoff: str, durchschnitt: float):
         try:
-            durchmesser = int(self.variables['durchmesser'].get().strip().replace('%', ''))
+            durchmesser_wert = self.variables['durchmesser'].get().strip()
+
+            if durchmesser_wert and durchmesser_wert[0]== "D":
+                # Entferne das "D" und konvertiere den Rest zu einer Zahl
+                durchmesser = int(durchmesser_wert[1:].strip().replace('%', ''))
+            else:
+                # Verwende den Wert direkt, wenn kein "D" vorne steht
+                durchmesser = int(durchmesser_wert.replace('%', ''))
+
             laenge = int(self.variables['laenge'].get().strip().replace('%', ''))
             result = Calculator.stueckpreis_berechnen(werkstoff, durchschnitt, durchmesser, laenge)
             self.variables['stueckpreis'].set(result if result else "Keine Angaben für die Abmessungen angegeben.")
         except ValueError:
             self.variables['stueckpreis'].set("Keine Angaben für die Abmessungen angegeben.")
+
 
     def show_artikelnummern(self, artikelnummern: list[str], abmessung: list[str]):
         if artikelnummern:
@@ -151,10 +162,10 @@ class GUI:
             artikelnummern_dropdown.grid(row=13, column=0, columnspan=2, padx=0, pady=5)
 
             # Setze den ersten kombinierten Wert als Standardwert
-            artikelnummern_dropdown.set(combined_values[0])  # Setze den ersten kombinierten Wert (Artikelnummer, Abmessung)
+            artikelnummern_dropdown.set(combined_values[0])
         else:
             # Wenn keine Artikelnummern gefunden wurden, setze die 'artikelnummern' variable leer und leere die Combobox
-            self.variables['artikelnummern'].set("")  # Leere die Textvariable
+            self.variables['artikelnummern'].set("")
             artikelnummern_dropdown = ttk.Combobox(self.root, textvariable=self.variables['artikelnummern'], 
                                                     values=[], font=self.styles['font_text'], width=25)  # Setze leere Werte
             artikelnummern_dropdown.grid(row=13, column=0, columnspan=2, padx=0, pady=5)
